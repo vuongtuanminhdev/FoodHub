@@ -1,8 +1,8 @@
 package com.example.foodhub.service;
 
 import com.example.foodhub.config.JwtUtil;
-
 import com.example.foodhub.dto.LoginRequest;
+import com.example.foodhub.dto.LoginResponse;
 import com.example.foodhub.dto.RegisterRequest;
 import com.example.foodhub.model.Role;
 import com.example.foodhub.model.User;
@@ -21,39 +21,44 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final RoleRepository roleRepository;
 
-
     public String register(RegisterRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            return "User already exists";
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Email already exists");
         }
 
         Role role = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
         User user = new User();
-        user.setEmail(request.getEmail());
+        user.setName(request.getName().trim());
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(role);
 
         userRepository.save(user);
-
         return "Register success";
     }
 
+    // SỬA METHOD LOGIN - trả về LoginResponse thay vì String
+    public LoginResponse login(LoginRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
 
-
-
-    public String login(LoginRequest request) {
-
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Wrong password");
         }
 
-        return jwtUtil.generateToken(user.getEmail());
-    }
+        // Lấy role name
+        String roleName = user.getRole().getName(); // "ROLE_ADMIN" hoặc "ROLE_USER"
 
+        // Tạo token với email và role
+        String token = jwtUtil.generateToken(user.getEmail(), roleName);
+
+        // Trả về đối tượng LoginResponse
+        return new LoginResponse(token, roleName, user.getEmail(), user.getName());
+    }
 }
