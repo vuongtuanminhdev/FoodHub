@@ -32,7 +32,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Bỏ qua filter cho các endpoint auth
+        // 🔹 Bỏ qua API auth
         if (path.startsWith("/api/auth/")) {
             chain.doFilter(request, response);
             return;
@@ -44,24 +44,38 @@ public class JwtFilter extends OncePerRequestFilter {
         String jwt = null;
         String role = null;
 
+        // 🔹 Lấy token từ header
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
             email = jwtUtil.extractEmail(jwt);
-            role = jwtUtil.extractRole(jwt); // THÊM: lấy role từ token
+            role = jwtUtil.extractRole(jwt);
         }
 
+        // 🔹 Xử lý authentication
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
             UserDetails userDetails = this.customUserDetailsService.loadUserByUsername(email);
 
             if (jwtUtil.validateToken(jwt, userDetails)) {
-                // SỬA: tạo authentication với role từ token
+                if (role != null && !role.startsWith("ROLE_")) {
+                    role = "ROLE_" + role;
+                }
+
+                // 🔹 Tạo authority
+                SimpleGrantedAuthority authority =
+                        new SimpleGrantedAuthority(role);
+
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
                                 null,
-                                Collections.singletonList(new SimpleGrantedAuthority(role))
+                                Collections.singletonList(authority)
                         );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }

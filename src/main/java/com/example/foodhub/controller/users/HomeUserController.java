@@ -1,4 +1,4 @@
-package com.example.foodhub.controller;
+package com.example.foodhub.controller.users;
 
 import com.example.foodhub.model.User;
 import com.example.foodhub.repository.UserRepository;
