@@ -1,6 +1,7 @@
 package com.example.foodhub.service;
 
 import com.example.foodhub.model.Role;
+import com.example.foodhub.model.Status;
 import com.example.foodhub.model.User;
 import com.example.foodhub.repository.RoleRepository;
 import com.example.foodhub.repository.UserRepository;
@@ -113,4 +114,17 @@ public class UserService {
 
         userRepository.delete(user);
     }
+
+    public User toggleStatus(Integer id) {
+        User user = getUserById(id);
+
+        if (user.getStatus().name().equals("ACTIVE")) {
+            user.setStatus(Status.BLOCK);
+        } else {
+            user.setStatus(Status.ACTIVE);
+        }
+
+        return userRepository.save(user);
+    }
+
 }

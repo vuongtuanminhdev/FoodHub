@@ -113,4 +113,22 @@ public class AdminUsersController {
                     ));
         }
     }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> toggleStatus(@PathVariable Integer id) {
+
+        try {
+            User user = userService.toggleStatus(id);
+
+            return ResponseEntity.ok(user);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
+        }
+    }
+
 }
