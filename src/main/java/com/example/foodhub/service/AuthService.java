@@ -21,44 +21,69 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final RoleRepository roleRepository;
 
+    // REGISTER
     public String register(RegisterRequest request) {
+
+        if (request.getEmail() == null ||
+                request.getPassword() == null ||
+                request.getName() == null) {
+            throw new RuntimeException("Missing required fields");
+        }
+
         String email = request.getEmail().trim().toLowerCase();
+        String password = request.getPassword().trim();
+        String name = request.getName().trim();
 
         if (userRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
 
         Role role = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("ROLE_USER not found in database"));
 
         User user = new User();
-        user.setName(request.getName().trim());
+        user.setName(name);
         user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
 
         userRepository.save(user);
+
         return "Register success";
     }
 
-    // SỬA METHOD LOGIN - trả về LoginResponse thay vì String
+    // LOGIN
     public LoginResponse login(LoginRequest request) {
-        String email = request.getEmail().trim().toLowerCase();
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Wrong password");
+        if (request.getEmail() == null ||
+                request.getPassword() == null) {
+            throw new RuntimeException("Missing email or password");
         }
 
-        // Lấy role name
-        String roleName = user.getRole().getName(); // "ROLE_ADMIN" hoặc "ROLE_USER"
+        String email = request.getEmail().trim().toLowerCase();
+        String password = request.getPassword().trim();
 
-        // Tạo token với email và role
-        String token = jwtUtil.generateToken(user.getEmail(), roleName);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("Invalid email or password"));
 
-        // Trả về đối tượng LoginResponse
-        return new LoginResponse(token, roleName, user.getEmail(), user.getName());
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        String roleName = user.getRole().getName();
+
+        String token = jwtUtil.generateToken(
+                user.getEmail(),
+                roleName
+        );
+
+        return new LoginResponse(
+                token,
+                roleName,
+                user.getEmail(),
+                user.getName()
+        );
     }
 }

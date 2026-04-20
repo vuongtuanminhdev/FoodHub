@@ -1,10 +1,10 @@
+// ===============================
+// JwtUtil.java
+// ===============================
 package com.example.foodhub.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -15,27 +15,33 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
-    private final String SECRET = "mySecureSecretKeyForJWTTokenGeneration2025!@#$%^&*()";
+    private final String SECRET =
+            "foodhubsecretfoodhubsecretfoodhubsecret123";
+
+    private final long EXPIRATION = 1000 * 60 * 60 * 24; // 1 ngày
 
     private Key getSignKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
-    public String extractEmail(String token) {
-        return extractClaims(token).getSubject();
+    // tạo token
+    public String generateToken(String email, String role) {
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(email)
+                .setIssuedAt(new Date())
+                .setExpiration(
+                        new Date(System.currentTimeMillis() + EXPIRATION)
+                )
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
 
-    public String extractUsername(String token) {
-        return extractClaims(token).getSubject();
-    }
-
-    // THÊM METHOD: Lấy role từ token
-    public String extractRole(String token) {
-        Claims claims = extractClaims(token);
-        return claims.get("role", String.class);
-    }
-
-    public Claims extractClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
                 .build()
@@ -43,41 +49,20 @@ public class JwtUtil {
                 .getBody();
     }
 
-    private Boolean isTokenExpired(String token) {
-        return extractClaims(token).getExpiration().before(new Date());
+    public String extractUsername(String token) {
+        return extractAllClaims(token).getSubject();
     }
 
-    public Boolean validateToken(String token, UserDetails userDetails) {
-        final String email = extractEmail(token);
-        return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
     }
 
-    public Boolean validateToken(String token) {
+    public boolean validateToken(String token) {
         try {
-            extractClaims(token);
+            extractAllClaims(token);
             return true;
         } catch (Exception e) {
             return false;
         }
-    }
-
-    // GIỮ METHOD CŨ để tương thích
-    public String generateToken(String email) {
-        return generateToken(email, "ROLE_USER");
-    }
-
-    // THÊM METHOD MỚI: Tạo token có role
-    public String generateToken(String email, String role) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
-        claims.put("email", email);
-
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(email)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
-                .signWith(getSignKey(), SignatureAlgorithm.HS256)
-                .compact();
     }
 }

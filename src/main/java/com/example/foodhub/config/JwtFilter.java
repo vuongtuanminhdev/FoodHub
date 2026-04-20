@@ -1,6 +1,8 @@
+// ===============================
+// JwtFilter.java
+// ===============================
 package com.example.foodhub.config;
 
-import com.example.foodhub.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,63 +11,69 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final CustomUserDetailsService customUserDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain chain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
+        String path = request.getServletPath();
 
-        // Bỏ qua filter cho các endpoint auth
-        if (path.startsWith("/api/auth/")) {
-            chain.doFilter(request, response);
+        // bỏ qua login/register
+        if (path.startsWith("/api/auth")) {
+            filterChain.doFilter(request, response);
             return;
         }
 
-        final String authorizationHeader = request.getHeader("Authorization");
+        final String authHeader = request.getHeader("Authorization");
 
-        String email = null;
-        String jwt = null;
-        String role = null;
+        String username = null;
+        String token = null;
 
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7);
-            email = jwtUtil.extractEmail(jwt);
-            role = jwtUtil.extractRole(jwt); // THÊM: lấy role từ token
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+            username = jwtUtil.extractUsername(token);
         }
 
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.customUserDetailsService.loadUserByUsername(email);
+        if (username != null &&
+                SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            if (jwtUtil.validateToken(jwt, userDetails)) {
-                // SỬA: tạo authentication với role từ token
+            if (jwtUtil.validateToken(token)) {
+
+                // FIX QUAN TRỌNG: lấy role từ token
+                String role = jwtUtil.extractRole(token);
+
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails,
+                                username,
                                 null,
-                                Collections.singletonList(new SimpleGrantedAuthority(role))
+                                List.of(new SimpleGrantedAuthority(role))
                         );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource()
+                                .buildDetails(request)
+                );
+
+                SecurityContextHolder.getContext()
+                        .setAuthentication(authToken);
             }
         }
 
-        chain.doFilter(request, response);
+        filterChain.doFilter(request, response);
     }
 }

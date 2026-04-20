@@ -1,4 +1,4 @@
-package com.example.foodhub.controller;
+package com.example.foodhub.controller.admin;
 
 import com.example.foodhub.model.User;
 import com.example.foodhub.repository.UserRepository;
@@ -12,9 +12,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/user")
 @RequiredArgsConstructor
-public class HomeUserController {
+public class HomeAdminController {
 
     private final UserRepository userRepository;
 

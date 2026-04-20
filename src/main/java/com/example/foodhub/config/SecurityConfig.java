@@ -1,10 +1,8 @@
 package com.example.foodhub.config;
 
-import com.example.foodhub.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,26 +20,32 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final CorsConfigurationSource corsConfigurationSource;
-    private final CustomUserDetailsService customUserDetailsService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
+
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
+
                 .sessionManagement(sess ->
                         sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/error").permitAll()
+
                         .requestMatchers("/api/user/**").hasRole("USER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
-                .userDetailsService(customUserDetailsService)
+
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
