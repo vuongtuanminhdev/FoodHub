@@ -1,47 +1,58 @@
-    package com.example.foodhub.controller.admin;
+package com.example.foodhub.controller.admin;
 
-    import com.example.foodhub.model.User;
-    import com.example.foodhub.service.UserService;
-    import lombok.RequiredArgsConstructor;
-    import org.springframework.web.bind.annotation.*;
+import com.example.foodhub.model.User;
+import com.example.foodhub.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
-    import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-    @RestController
-    @RequestMapping("/admin/users")
-    @RequiredArgsConstructor
-    public class HomeAdminController {
+@RestController
+@RequestMapping("/user")
+@RequiredArgsConstructor
+public class HomeAdminController {
 
-        private final UserService userService;
+    private final UserRepository userRepository;
 
-        // Lấy tất cả user
-        @GetMapping
-        public List<User> getAllUsers() {
-            return userService.getAllUsers();
-        }
+    @GetMapping("/home")
+    public ResponseEntity<?> getUserHome() {
+        // Lấy email từ người dùng đang đăng nhập
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
 
-        // Lấy user theo id
-        @GetMapping("/{id}")
-        public User getUser(@PathVariable Integer id) {
-            return userService.getUserById(id);
-        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // THÊM USER
-        @PostMapping
-        public User createUser(@RequestBody User user) {
-            return userService.createUser(user);
-        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Welcome to FoodHub, " + user.getName() + "!");
+        response.put("user", Map.of(
+                "id", user.getId(),
+                "name", user.getName(),
+                "email", user.getEmail(),
+                "role", user.getRole().getName()
+        ));
 
-        // Update user
-        @PutMapping("/{id}")
-        public User updateUser(@PathVariable Integer id, @RequestBody User user) {
-            return userService.updateUser(id, user);
-        }
-
-        // Xóa user
-        @DeleteMapping("/{id}")
-        public String deleteUser(@PathVariable Integer id) {
-            userService.deleteUser(id);
-            return "Deleted successfully";
-        }
+        return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getUserProfile() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Map<String, Object> profile = new HashMap<>();
+        profile.put("id", user.getId());
+        profile.put("name", user.getName());
+        profile.put("email", user.getEmail());
+        profile.put("role", user.getRole().getName());
+
+        return ResponseEntity.ok(profile);
+    }
+}

@@ -10,7 +10,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/foods")
 @RequiredArgsConstructor
-public class FoodAdminController {
+public class AdminFoodController {
 
     private final FoodService foodService;
 

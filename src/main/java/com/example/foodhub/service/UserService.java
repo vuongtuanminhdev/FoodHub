@@ -18,45 +18,99 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // Lấy tất cả user
+    // =============================
+    // LẤY TẤT CẢ USER
+    // =============================
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    // Lấy user theo id
+    // =============================
+    // LẤY USER THEO ID
+    // =============================
     public User getUserById(Integer id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("User not found with id: " + id));
     }
 
-    // 🔹 THÊM USER (NEW)
+    // =============================
+    // TẠO USER
+    // =============================
     public User createUser(User user) {
 
-        // tìm role theo name (ADMIN hoặc USER)
-        Role role = roleRepository.findByName(user.getRole().getName())
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+        // check email trùng
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        // check role
+        String roleName = user.getRole().getName();
+
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() ->
+                        new RuntimeException("Role not found: " + roleName));
 
         user.setRole(role);
 
+        // mã hóa password
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         return userRepository.save(user);
     }
 
-    // Xóa user
-    public void deleteUser(Integer id) {
-        userRepository.deleteById(id);
-    }
-
-    // Update user
+    // =============================
+    // UPDATE USER
+    // =============================
     public User updateUser(Integer id, User updatedUser) {
+
         User user = getUserById(id);
 
+        // update name
         user.setName(updatedUser.getName());
-        user.setEmail(updatedUser.getEmail());
 
-//        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        // update email nếu đổi email
+        if (!user.getEmail().equals(updatedUser.getEmail())) {
+
+            if (userRepository.existsByEmail(updatedUser.getEmail())) {
+                throw new RuntimeException("Email already exists");
+            }
+
+            user.setEmail(updatedUser.getEmail());
+        }
+
+        // update password nếu có nhập password mới
+        if (updatedUser.getPassword() != null &&
+                !updatedUser.getPassword().trim().isEmpty()) {
+
+            user.setPassword(
+                    passwordEncoder.encode(updatedUser.getPassword())
+            );
+        }
+
+        // update role nếu có
+        if (updatedUser.getRole() != null &&
+                updatedUser.getRole().getName() != null) {
+
+            String roleName = updatedUser.getRole().getName();
+
+            Role role = roleRepository.findByName(roleName)
+                    .orElseThrow(() ->
+                            new RuntimeException("Role not found: " + roleName));
+
+            user.setRole(role);
+        }
 
         return userRepository.save(user);
+    }
+
+    // =============================
+    // DELETE USER
+    // =============================
+    public void deleteUser(Integer id) {
+
+        User user = getUserById(id);
+
+        userRepository.delete(user);
     }
 }
