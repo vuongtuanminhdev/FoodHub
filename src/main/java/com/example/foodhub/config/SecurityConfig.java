@@ -35,17 +35,24 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // 🔓 Public APIs
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
+                        // 🔐 USER
                         .requestMatchers("/api/user/**").hasRole("USER")
+
+                        // 🔐 ADMIN (FIX: thêm /admin/**)
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
+                        // 🔒 các request còn lại cần login
                         .anyRequest().authenticated()
                 )
 
+                // 🔥 JWT filter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

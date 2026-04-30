@@ -1,6 +1,3 @@
-// ===============================
-// JwtUtil.java
-// ===============================
 package com.example.foodhub.config;
 
 import io.jsonwebtoken.*;
@@ -16,7 +13,7 @@ import java.util.Map;
 public class JwtUtil {
 
     private final String SECRET =
-            "foodhubsecretfoodhubsecretfoodhubsecret123";
+            "foodhubsecretfoodhubsecretfoodhubsecret1234567890"; // 🔥 dài hơn
 
     private final long EXPIRATION = 1000 * 60 * 60 * 24; // 1 ngày
 
@@ -24,8 +21,13 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
-    // tạo token
+    // 🔥 TẠO TOKEN (FIX ROLE)
     public String generateToken(String email, String role) {
+
+        // đảm bảo luôn đúng format ROLE_
+        if (!role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
@@ -41,6 +43,7 @@ public class JwtUtil {
                 .compact();
     }
 
+    // 🔥 PARSE TOKEN
     public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
@@ -57,12 +60,24 @@ public class JwtUtil {
         return extractAllClaims(token).get("role", String.class);
     }
 
+    // 🔥 VALIDATE TOKEN (LOG RÕ LỖI)
     public boolean validateToken(String token) {
         try {
             extractAllClaims(token);
             return true;
-        } catch (Exception e) {
-            return false;
+
+        } catch (ExpiredJwtException e) {
+            System.out.println("JWT hết hạn");
+        } catch (UnsupportedJwtException e) {
+            System.out.println("JWT không hỗ trợ");
+        } catch (MalformedJwtException e) {
+            System.out.println("JWT sai format");
+        } catch (SignatureException e) {
+            System.out.println("JWT sai chữ ký");
+        } catch (IllegalArgumentException e) {
+            System.out.println("JWT rỗng hoặc null");
         }
+
+        return false;
     }
 }

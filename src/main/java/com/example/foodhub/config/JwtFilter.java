@@ -1,6 +1,3 @@
-// ===============================
-// JwtFilter.java
-// ===============================
 package com.example.foodhub.config;
 
 import jakarta.servlet.FilterChain;
@@ -33,7 +30,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // bỏ qua login/register
+        // 🔓 Bỏ qua login/register
         if (path.startsWith("/api/auth")) {
             filterChain.doFilter(request, response);
             return;
@@ -41,39 +38,62 @@ public class JwtFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
-        String username = null;
-        String token = null;
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
-            username = jwtUtil.extractUsername(token);
+        // ❌ Không có header hoặc sai format → bỏ qua
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
         }
 
+        String token = authHeader.substring(7);
+
+        // ❌ Token không đúng format JWT (phải có 3 phần)
+        if (token == null || token.split("\\.").length != 3) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String username;
+
+        try {
+            username = jwtUtil.extractUsername(token);
+        } catch (Exception e) {
+            // ❌ Token lỗi → bỏ qua, không crash
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 🔐 Nếu chưa authenticate
         if (username != null &&
                 SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            if (jwtUtil.validateToken(token)) {
+            try {
+                if (jwtUtil.validateToken(token)) {
 
-                // FIX QUAN TRỌNG: lấy role từ token
-                String role = jwtUtil.extractRole(token);
+                    String role = jwtUtil.extractRole(token);
 
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                username,
-                                null,
-                                List.of(new SimpleGrantedAuthority(role))
-                        );
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    username,
+                                    null,
+                                    List.of(new SimpleGrantedAuthority(role))
+                            );
 
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
+                    );
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authToken);
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authToken);
+                }
+            } catch (Exception e) {
+                // ❌ Token invalid → bỏ qua
+                filterChain.doFilter(request, response);
+                return;
             }
         }
 
+        // 👉 tiếp tục filter chain
         filterChain.doFilter(request, response);
     }
 }

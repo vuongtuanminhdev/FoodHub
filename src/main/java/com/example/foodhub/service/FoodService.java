@@ -40,7 +40,6 @@ public class FoodService {
         return foodRepository.save(food);
     }
 
-    // 🔹 UPDATE
     public Food updateFood(Long id, Food updatedFood) {
         Food food = getFoodById(id);
 
