@@ -1,5 +1,6 @@
 package com.example.foodhub.service;
 
+import com.example.foodhub.dto.FoodRequest;
 import com.example.foodhub.model.Category;
 import com.example.foodhub.model.Food;
 import com.example.foodhub.repository.CategoryRepository;
@@ -16,41 +17,47 @@ public class FoodService {
     private final FoodRepository foodRepository;
     private final CategoryRepository categoryRepository;
 
-    // 🔹 Lấy tất cả món
+    // 🔹 GET ALL
     public List<Food> getAllFoods() {
         return foodRepository.findAll();
     }
 
-    // 🔹 Lấy theo id
+    // 🔹 GET BY ID
     public Food getFoodById(Long id) {
         return foodRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Food not found"));
     }
 
-    // 🔥 THÊM MÓN
-    public Food createFood(Food food) {
+    // 🔥 CREATE (DTO)
+    public Food createFood(FoodRequest request) {
 
-        String categoryName = food.getCategory().getName();
+        if (request.getCategoryId() == null) {
+            throw new RuntimeException("Category ID không được null");
+        }
 
-        Category category = categoryRepository.findByName(categoryName)
+        Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
+        Food food = new Food();
+        food.setName(request.getName());
+        food.setPrice(request.getPrice());
+        food.setDescription(request.getDescription());
         food.setCategory(category);
 
         return foodRepository.save(food);
     }
 
-    public Food updateFood(Long id, Food updatedFood) {
+    // 🔥 UPDATE (DTO)
+    public Food updateFood(Long id, FoodRequest request) {
+
         Food food = getFoodById(id);
 
-        food.setName(updatedFood.getName());
-        food.setPrice(updatedFood.getPrice());
-        food.setDescription(updatedFood.getDescription());
+        food.setName(request.getName());
+        food.setPrice(request.getPrice());
+        food.setDescription(request.getDescription());
 
-        if (updatedFood.getCategory() != null) {
-            String categoryName = updatedFood.getCategory().getName();
-
-            Category category = categoryRepository.findByName(categoryName)
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found"));
 
             food.setCategory(category);
@@ -61,7 +68,9 @@ public class FoodService {
 
     // 🔹 DELETE
     public void deleteFood(Long id) {
+        if (!foodRepository.existsById(id)) {
+            throw new RuntimeException("Food not found");
+        }
         foodRepository.deleteById(id);
     }
 }
-

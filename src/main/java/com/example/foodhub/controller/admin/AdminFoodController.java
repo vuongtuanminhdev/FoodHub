@@ -1,5 +1,6 @@
 package com.example.foodhub.controller.admin;
 
+import com.example.foodhub.dto.FoodRequest;
 import com.example.foodhub.model.Food;
 import com.example.foodhub.service.FoodService;
 import lombok.RequiredArgsConstructor;
@@ -25,13 +26,13 @@ public class AdminFoodController {
     }
 
     @PostMapping
-    public Food createFood(@RequestBody Food food) {
-        return foodService.createFood(food);
+    public Food createFood(@RequestBody FoodRequest request) {
+        return foodService.createFood(request);
     }
 
     @PutMapping("/{id}")
-    public Food updateFood(@PathVariable Long id, @RequestBody Food food) {
-        return foodService.updateFood(id, food);
+    public Food updateFood(@PathVariable Long id, @RequestBody FoodRequest request) {
+        return foodService.updateFood(id, request);
     }
 
     @DeleteMapping("/{id}")
